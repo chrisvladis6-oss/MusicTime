@@ -128,6 +128,8 @@ function render() {
   renderLists();
   const list = $("tracks"); list.innerHTML = "";
   const vis = visibleSongs(), curPl = plById(view);
+  // Colour wash at the top, per view (like a playlist page)
+  document.documentElement.style.setProperty("--hero", curPl ? `hsl(${hash(curPl.id) % 360} 45% 32%)` : view === "fav" ? "#4527a0" : "#2d4a3a");
   const total = songs.reduce((a, s) => a + (s.duration || 0), 0);
   $("stats").textContent = songs.length
     ? `${songs.length} ${songs.length === 1 ? "τραγούδι" : "τραγούδια"} · ${Math.round(total / 60)} λεπτά μουσικής`
@@ -228,14 +230,16 @@ function renderPlayer() {
   $("repeatBtn").setAttribute("aria-label", repeat === "off" ? "Επανάληψη: όχι" : repeat === "all" ? "Επανάληψη: όλα" : "Επανάληψη: ένα");
   const note = (current.note || "").trim();
   $("npNote").hidden = !note; $("npNoteText").textContent = note;
-  $("sheet").style.setProperty("--glow", `hsl(${hash(current.id) % 360} 70% 50% / .5)`);
+  const hue = hash(current.id) % 360;
+  $("sheet").style.setProperty("--glow", `hsl(${hue} 40% 30%)`);
+  document.documentElement.style.setProperty("--mini", `hsl(${hue} 30% 20%)`);
 }
 let seeking = false, lastSave = 0;
 function renderTime() {
   const d = isFinite(audio.duration) ? audio.duration : (current && current.duration) || 0;
   const c = audio.currentTime || 0;
   $("miniProg").style.width = d ? (c / d * 100) + "%" : "0";
-  if (!seeking) $("seek").value = d ? Math.round(c / d * 1000) : 0;
+  if (!seeking) { $("seek").value = d ? Math.round(c / d * 1000) : 0; $("seek").style.setProperty("--pct", ($("seek").value / 10) + "%"); }
   $("tCur").textContent = fmt(c); $("tDur").textContent = fmt(d);
 }
 audio.addEventListener("timeupdate", () => {
@@ -249,7 +253,7 @@ audio.addEventListener("play", () => { renderPlayer(); render(); });
 audio.addEventListener("pause", () => { renderPlayer(); render(); });
 audio.addEventListener("ended", () => next(true));
 audio.addEventListener("loadedmetadata", renderTime);
-$("seek").addEventListener("input", () => { seeking = true; $("tCur").textContent = fmt($("seek").value / 1000 * (audio.duration || 0)); });
+$("seek").addEventListener("input", () => { seeking = true; $("seek").style.setProperty("--pct", ($("seek").value / 10) + "%"); $("tCur").textContent = fmt($("seek").value / 1000 * (audio.duration || 0)); });
 $("seek").addEventListener("change", () => { const d = audio.duration || 0; if (d) audio.currentTime = $("seek").value / 1000 * d; seeking = false; });
 
 async function setMediaSession() {
